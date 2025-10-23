@@ -25,6 +25,9 @@ jobs:
           - os: windows-latest
             python-version: "3.9"
     steps:
+      - name: Print Environment
+        run: echo "Running in ${{ github.event.inputs.environment }}"
+        
       - uses: actions/checkout@v4
 
       - name: Set up Python
