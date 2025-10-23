@@ -26,7 +26,7 @@ jobs:
             python-version: "3.9"
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -39,3 +39,11 @@ jobs:
 
       - name: Run tests
         run: pytest --maxfail=1 --disable-warnings -q
+      
+      - name: Generate Summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Matrix Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| OS | Python | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ${{ matrix.os }} | ${{ matrix.python-version }} | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY        
