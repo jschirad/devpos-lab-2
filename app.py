@@ -1,61 +1,79 @@
 """
 Simple Flask web application for DevOps lab
-This app demonstrates basic web functionality with some code quality issues
+This app demonstrates basic web functionality with improved code quality
 """
 import os
+import sys
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# Global variable (pylint will flag this)
-counter = 0
+
+class AppState:
+    """Class to manage application state instead of global variables"""
+    def __init__(self):
+        self.counter = 0
+    
+    def increment_counter(self):
+        """Increment and return the visit counter"""
+        self.counter += 1
+        return self.counter
+
+
+state = AppState()
+
 
 @app.route('/')
 def hello_world():
     """Main endpoint that returns a greeting"""
-    global counter
-    counter += 1
+    visits = state.increment_counter()
     return jsonify({
         'message': 'Hello from DevOps Lab!',
         'version': '1.0.0',
         'environment': os.environ.get('ENVIRONMENT', 'development'),
-        'visits': counter
+        'visits': visits
     })
+
 
 @app.route('/health')
 def health_check():
     """Health check endpoint for load balancer"""
     return jsonify({'status': 'healthy', 'service': 'flask-app'})
 
+
 @app.route('/info')
 def get_info():
     """Returns application information"""
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
     return jsonify({
         'app_name': 'DevOps Lab App',
-        'python_version': '3.11',
+        'python_version': python_version,
         'framework': 'Flask'
     })
 
-# Bad function (has code quality issues for demonstration)
-def badFunction(x, y):  # pylint will flag: function name should be snake_case
-    """This function has intentional quality issues"""
-    z = x + y  # unused variable warning
-    if x > 10:
-        if y > 10:  # nested if (complexity issue)
-            result = x * y
-        else:
-            result = x + y
-    else:
-        result = 0
-    return result
+
+def calculate_result(x_val, y_val):
+    """Calculate result based on input values with simplified logic"""
+    if x_val <= 10:
+        return 0
+    
+    if y_val > 10:
+        return x_val * y_val
+    
+    return x_val + y_val
+
 
 @app.route('/calculate')
 def calculate():
-    """Endpoint that uses the bad function"""
-    x = int(request.args.get('x', 5))
-    y = int(request.args.get('y', 3))
-    result = badFunction(x, y)
-    return jsonify({'result': result})
+    """Endpoint that performs calculation based on query parameters"""
+    try:
+        x_val = int(request.args.get('x', 5))
+        y_val = int(request.args.get('y', 3))
+        result = calculate_result(x_val, y_val)
+        return jsonify({'result': result})
+    except ValueError:
+        return jsonify({'error': 'Invalid input parameters'}), 400
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
