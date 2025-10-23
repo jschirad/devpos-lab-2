@@ -39,11 +39,41 @@ jobs:
 
       - name: Run tests
         run: pytest --maxfail=1 --disable-warnings -q
-      
-      - name: Generate Summary
+    
+      - name: Upload test results
         if: always()
-        run: |
-          echo "## 🧪 Test Matrix Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| OS | Python | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|----|---------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| ${{ matrix.os }} | ${{ matrix.python-version }} | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY        
+        uses: actions/upload-artifact@v4
+        with:
+            name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+            path: |
+                test-results.txt
+                retention-days: 1
+
+  report:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download all test results
+      uses: actions/download-artifact@v4
+      with:
+        path: test-results
+
+    - name: Generate Consolidated Summary
+      run: |
+        echo "## 🧪 Test Matrix Summary" >> $GITHUB_STEP_SUMMARY
+        echo "| OS | Python | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|----|---------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        for result in ubuntu-latest windows-latest; do
+        for version in 3.9 3.10 3.11; do
+          if [[ "$result" == "windows-latest" && "$version" == "3.9" ]]; then
+            continue
+          fi
+          if [ -d "test-results/test-results-$result-$version" ]; then
+            echo "| $result | $version | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| $result | $version | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        done   
